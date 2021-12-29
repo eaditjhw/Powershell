@@ -2,16 +2,18 @@
 # Get all certs with a blank Friendly Name and populate it with a concatenation of CN and Cert Template 
 #
 Get-ChildItem Cert:\LocalMachine\my |where FriendlyName -eq "" | Transform-Certificate | ForEach-Object {
-	if ((Check-Write-Access $_) -eq 0) {
-		if ($_.Template) {
-			$_.FriendlyName=-join(($_.Subject -replace "(CN=)(.*?)",'$2'),"-",($_.Template -replace "(?ms)(Template=)(.*)\((.*$)",'$2'))
+	if ($_.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName) {
+		if ((Check-Write-Access($_)) -eq 0) {
+			if ($_.Template) {
+				$_.FriendlyName=-join(($_.Subject -replace "(CN=)(.*?)",'$2'),"-",($_.Template -replace "(?ms)(Template=)(.*)\((.*$)",'$2'))
+			} 
+			else {
+				Write-Host "No Template name for " + $_.Subject + " Probably not an MS PKI Cert - skipped"
+			}
 		} 
 		else {
-			Write-Host "No Template name for " + $_.Subject + " Probably not an MS PKI Cert - skipped"
+			Write-Host "Unable to write to certificiate object " + $_.Subject + " Check you are runnin gthis with Elevated permissions"
 		}
-	} 
-	else {
-		Write-Host "Unable to write to certificiate object " + $_.Subject + " Check you are runnin gthis with Elevated permissions"
 	}
 }
 exit
