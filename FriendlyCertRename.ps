@@ -1,0 +1,25 @@
+#
+# Get all certs with a blank Friendly Name and populate it with a concatenation of CN and Cert Template 
+#
+Get-ChildItem Cert:\LocalMachine\my |where FriendlyName -eq "" | Transform-Certificate | ForEach-Object {
+	$_.FriendlyName=-join(($_.Subject -replace "(CN=)(.*?)",'$2'),"-",($_.Template -replace "(?ms)(Template=)(.*)\((.*$)",'$2'))
+}
+#
+# Transform_Certificate (credit Vadims Podans of PKI Solutions Inc)
+# Takes certificate data from Get-ChildItem and expands the extended properties to obtain the Template that was used to create the certificate request (if it exists - MS PKI certs only)
+# Returns the object with properties populated - for full list of properties see System.Security.Cryptography.X509Certificates.X509Certificate2.Properties file
+#
+function Transform-Certificate {
+[CmdletBinding()]
+    param(
+ [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+ [Security.Cryptography.X509Certificates.X509Certificate2]$cert
+ )
+    process {
+        $temp = $cert.Extensions | ?{$_.Oid.Value -eq "1.3.6.1.4.1.311.20.2"}
+ 				if (!$temp) {
+            $temp = $cert.Extensions | ?{$_.Oid.Value -eq "1.3.6.1.4.1.311.21.7"}
+ }
+        $cert | Add-Member -Name Template -MemberType NoteProperty -Value $temp.Format(1) -PassThru
+ }
+}
