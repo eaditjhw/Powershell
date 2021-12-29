@@ -4,6 +4,7 @@
 Get-ChildItem Cert:\LocalMachine\my |where FriendlyName -eq "" | Transform-Certificate | ForEach-Object {
 	$_.FriendlyName=-join(($_.Subject -replace "(CN=)(.*?)",'$2'),"-",($_.Template -replace "(?ms)(Template=)(.*)\((.*$)",'$2'))
 }
+exit
 #
 # Transform_Certificate (credit Vadims Podans of PKI Solutions Inc)
 # Takes certificate data from Get-ChildItem and expands the extended properties to obtain the Template that was used to create the certificate request (if it exists - MS PKI certs only)
