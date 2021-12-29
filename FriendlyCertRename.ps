@@ -3,7 +3,12 @@
 #
 Get-ChildItem Cert:\LocalMachine\my |where FriendlyName -eq "" | Transform-Certificate | ForEach-Object {
 	if ((Check-Write-Access $_) -eq 0) {
-		$_.FriendlyName=-join(($_.Subject -replace "(CN=)(.*?)",'$2'),"-",($_.Template -replace "(?ms)(Template=)(.*)\((.*$)",'$2'))
+		if ($_.Template) {
+			$_.FriendlyName=-join(($_.Subject -replace "(CN=)(.*?)",'$2'),"-",($_.Template -replace "(?ms)(Template=)(.*)\((.*$)",'$2'))
+		} 
+		else {
+			Write-Host "No Template name for " + $_.Subject + " Probably not an MS PKI Cert - skipped"
+		}
 	} 
 	else {
 		Write-Host "Unable to write to certificiate object " + $_.Subject + " Check you are runnin gthis with Elevated permissions"
@@ -26,7 +31,12 @@ function Transform-Certificate {
  		if (!$temp) {
 			$temp = $cert.Extensions | ?{$_.Oid.Value -eq "1.3.6.1.4.1.311.21.7"}
  		}
-        	$cert | Add-Member -Name Template -MemberType NoteProperty -Value $temp.Format(1) -PassThru
+		if ($temp) {
+        		$cert | Add-Member -Name Template -MemberType NoteProperty -Value $temp.Format(1) -PassThru
+		}
+		else {
+			return 1
+		}
  	}
 }
 
