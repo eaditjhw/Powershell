@@ -7,7 +7,7 @@ Get-ChildItem Cert:\LocalMachine\my |where FriendlyName -eq "" | Transform-Certi
 #
 # Transform_Certificate (credit Vadims Podans of PKI Solutions Inc)
 # Takes certificate data from Get-ChildItem and expands the extended properties to obtain the Template that was used to create the certificate request (if it exists - MS PKI certs only)
-# Returns the object with properties populated - for full list of properties see System.Security.Cryptography.X509Certificates.X509Certificate2.Properties file
+# Returns the object with properties populated - for full list of properties see X509Certificate2.Properties file
 #
 function Transform-Certificate {
 [CmdletBinding()]
