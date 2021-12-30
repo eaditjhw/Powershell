@@ -70,11 +70,11 @@ if(-not (Test-Administrator)) {
 Get-ChildItem Cert:\LocalMachine\my | where FriendlyName -eq "" | ForEach-Object {
 	Write-Host "Updating Friendly Name for the following certificate:
 "
-	($_ | fl | Format-Table | Out-String).Trim()
+	($_ | fl | Out-String).Trim()
 	If (Update-FriendlyName($_)) {
 		Write-Host "Here's the update:
 "
-		$_ | fl 
+	($_ | fl | Out-String).Trim()
 	}
 }
 exit 0
