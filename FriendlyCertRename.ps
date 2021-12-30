@@ -10,6 +10,7 @@ function Update-FriendlyName {
 	# Transform the certificate object to expose extended properties including the Template name (if it exists; non MS PKI certs wont have one)
 	if (($cert | Transform-Certificate) -eq 1) {
 		Write-Host "We did not manage to extract the Extended Properties for above cert Probably not an MS PKI Cert - skipped"
+		Return
 	}
 	else {
 		# Create the Friendly Name for the certificate using the Common Name and Template name joined by a '-'
@@ -23,6 +24,7 @@ function Update-FriendlyName {
 #
 function Transform-Certificate {
  [CmdletBinding()]
+ [OutputType([bool])]
  param(
 	[Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
 	[Security.Cryptography.X509Certificates.X509Certificate2]$cert
@@ -36,9 +38,10 @@ function Transform-Certificate {
         		$cert | Add-Member -Name Template -MemberType NoteProperty -Value $temp.Format(1) -PassThru
 		}
 		else {
-			return 1
+			return $false
 		}
- 	}
+	}
+	return $true
 }
 #
 # Nifty little test to check if we are in an elevated shell
