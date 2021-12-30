@@ -1,22 +1,38 @@
 #
+# Must be executed in elevated shell - exit if we are not
+#
+if(-not (Test-Administrator)) {
+	Write-Error "This script must be executed as Administrator.";
+	exit 1;
+}
+#
 # Get all certs with a blank Friendly Name and populate it with a concatenation of CN and Cert Template 
 #
-Get-ChildItem Cert:\LocalMachine\my |where FriendlyName -eq "" | Transform-Certificate | ForEach-Object {
-	if ($_.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName) {
-		if ((Check-Write-Access($_)) -eq 0) {
-			if ($_.Template) {
-				$_.FriendlyName=-join(($_.Subject -replace "(CN=)(.*?)",'$2'),"-",($_.Template -replace "(?ms)(Template=)(.*)\((.*$)",'$2'))
-			} 
-			else {
-				Write-Host "No Template name for " + $_.Subject + " Probably not an MS PKI Cert - skipped"
-			}
-		} 
-		else {
-			Write-Host "Unable to write to certificiate object " + $_.Subject + " Check you are runnin gthis with Elevated permissions"
-		}
+Get-ChildItem Cert:\LocalMachine\my |where FriendlyName -eq "" | ForEach-Object {
+	Update-FriendlyName ($_)
+}
+exit 0
+#
+# So this is where the Magic happens - Taking the certificate object and updatinbg the Friendly Name
+# 
+function Update-FriendlyName {
+ [CmdletBinding()]
+ param(
+	[Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+	[Security.Cryptography.X509Certificates.X509Certificate2]$cert
+ )
+	Write-Host "Updating Friendly Name for the following certificate:"
+	$cert|fl
+	# Transform the certificate object to expose extended properties including the Template name (if it exists; non MS PKI certs wont have one)
+	$cert| Transform-Certificate
+	if ($cert.Template) {
+		# Create the Friendly Name for the certificate using the Common Name and Template name joined by a '-'
+		$cert.FriendlyName=-join(($cert.Subject -replace "(CN=)(.*?)",'$2'),"-",($cert.Template -replace "(?ms)(Template=)(.*)\((.*$)",'$2'))
+	} 
+	else {
+		Write-Host "No Template name for above cert Probably not an MS PKI Cert - skipped"
 	}
 }
-exit
 #
 # Transform_Certificate (credit Vadims Podans of PKI Solutions Inc)
 # Takes certificate data from Get-ChildItem and expands the extended properties to obtain the Template that was used to create the certificate request (if it exists - MS PKI certs only)
@@ -41,20 +57,16 @@ function Transform-Certificate {
 		}
  	}
 }
-
-function Check-Write-Access {
- [CmdletBinding()]
- param(
-	[Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)] 
-	[Security.Cryptography.X509Certificates.X509Certificate2]$cert
- )
-	$rsaFile = $cert.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName
-	$keyPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\"
-	$fullPath=$keyPath+$rsaFile
-	try {
-		$filetest =  [IO.FILE]::OpenWrite($fullpath)
-		$filetest.close()
-		Return 0
-	}
-	catch { Return 1 }
+#
+# Nifty little test to check if we are in an elevated shell
+# Returns true if we are, false if we aren't
+#
+function Test-Administrator  
+{  
+    [OutputType([bool])]
+    param()
+    process {
+        [Security.Principal.WindowsPrincipal]$user = [Security.Principal.WindowsIdentity]::GetCurrent();
+        return $user.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator);
+    }
 }
