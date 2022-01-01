@@ -10,7 +10,7 @@ function Update-FriendlyName {
  )
 	# Transform the certificate object to expose extended properties including the Template name (if it exists; non MS PKI certs wont have one)
 	if (($cert | Transform-Certificate) -eq 1) {
-		Write-Host "INFO : We did not manage to extract the Extended Properties for cert thumbprint " $cert.Thumbprint
+		Write-Host "WARN : We did not manage to extract the extended properties for certificate:" $cert.Thumbprint
 		Return $False
 	}
 	else {
@@ -68,12 +68,14 @@ if(-not (Test-Administrator)) {
 # Get all certs with a blank Friendly Name and populate it with a concatenation of CN and Cert Template 
 #
 Get-ChildItem Cert:\LocalMachine\my | where FriendlyName -eq "" | ForEach-Object {
-	Write-Host "INFO : Updating Friendly Name for the following certificate with Thumbprint:" $_.Thumbprint
+	$Thumbprint=$_.Thumbprint
+	Write-Host "INFO : Updating Friendly Name for the following certificate:" $Thumbprint
 	If (Update-FriendlyName($_)) {
-		Write-Host "INFO : Success! Here's the new Friendly Name: " $_.FriendlyName
+		Write-Host "INFO : Success! Here's the new Friendly Name: " $_.FriendlyName.Trim()
+	#($_ | fl | Out-String).Trim()
 	}
 	else {
-		Write-Host "WARN : Did not update this cert (" $_.Thumbprint ")"
+		Write-Host "WARN : Did not update this certificate: $Thumbprint"
 	}
 }
 exit 0
