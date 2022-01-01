@@ -10,7 +10,7 @@ function Update-FriendlyName {
  )
 	# Transform the certificate object to expose extended properties including the Template name (if it exists; non MS PKI certs wont have one)
 	if (($cert | Transform-Certificate) -eq 1) {
-		Write-Host "We did not manage to extract the Extended Properties for above cert Probably not an MS PKI Cert - skipped"
+		Write-Host "INFO: We did not manage to extract the Extended Properties for cert thumbprint " $cert.Thumbprint ". Probably not an MS PKI Cert - skipped"
 		Return $False
 	}
 	else {
@@ -61,20 +61,21 @@ function Test-Administrator
 # Must be executed in elevated shell - exit if we are not
 #
 if(-not (Test-Administrator)) {
-	Write-Error "This script must be executed as Administrator.";
+	Write-Error "FATAL: This script must be executed as Administrator.";
 	exit 1;
 }
 #
 # Get all certs with a blank Friendly Name and populate it with a concatenation of CN and Cert Template 
 #
 Get-ChildItem Cert:\LocalMachine\my | where FriendlyName -eq "" | ForEach-Object {
-	Write-Host "Updating Friendly Name for the following certificate:
-"
-	($_ | fl | Out-String).Trim()
+	Write-Host "INFO: Updating Friendly Name for the following certificate with Thumbprint:" $_.Thumbprint
+	# ($_ | fl | Out-String).Trim()
 	If (Update-FriendlyName($_)) {
-		Write-Host "Here's the update:
-"
-	($_ | fl | Out-String).Trim()
+		Write-Host "INFO: Success! Here's the new Friendly Name: " $_.FriendlyName
+	#($_ | fl | Out-String).Trim()
+	}
+	else {
+		Write-Host "FATAL: Did not update this cert (" $_.Thumbprint ")"
 	}
 }
 exit 0
