@@ -1,3 +1,6 @@
+Param(
+    [Switch]$Force = $false
+    )
 #
 # So this is where the Magic happens - Taking the certificate object and updatinbg the Friendly Name
 # 
@@ -67,12 +70,19 @@ if(-not (Test-Administrator)) {
 #
 # Get all certs with a blank Friendly Name and populate it with a concatenation of CN and Cert Template 
 #
+if ($Force.ispresent) {
+	Write-Host "INFO : Force Mode"
+}
+else {
+	$wshell = New-Object -ComObject Wscript.Shell
+	$answer = $wshell.Popup("About to update Friendly Name for all Certificates in Machine Store. Do you want to continue?",0,"Alert",64+4)
+	if($answer -eq 7) {exit 0}
+}
 Get-ChildItem Cert:\LocalMachine\my | where FriendlyName -eq "" | ForEach-Object {
 	$Thumbprint=$_.Thumbprint
 	Write-Host "INFO : Updating Friendly Name for the following certificate:" $Thumbprint
 	If (Update-FriendlyName($_)) {
 		Write-Host "INFO : Success! Here's the new Friendly Name: " $_.FriendlyName.Trim()
-	#($_ | fl | Out-String).Trim()
 	}
 	else {
 		Write-Host "WARN : Did not update this certificate: $Thumbprint"
